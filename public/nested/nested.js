@@ -8,10 +8,11 @@ angular.module("demo").controller("NestedListsDemoController", function($scope, 
     selected: null,
     templates: [{
       type: "tag",
-      _id: '6c84fb90-12c4-11e1-840d-7b25c5ee775a' // this needs to be unique
+      _id: '6c84fb90-12c4-11e1-840d-7b25c5ee775a', // this needs to be unique
     }, {
       type: "skill",
       _id: '6c84fb90-12c4-11e1-840d-7b25c5ee775a', // this needs to be unique
+      logic: "and",
       columns: [
         []
       ]
@@ -34,7 +35,8 @@ angular.module("demo").controller("NestedListsDemoController", function($scope, 
         type: 'GET',
         success: function(result) {
           if (result[0].contents){
-            console.log("init() loaded model: ", result[0].contents);
+            console.log("init() loaded model: ", result[0].contents); //result[0].contents
+            // console.log("this is the columns: ", result[0].columns);
             $scope.models.dropzones = {"contents" : JSON.parse(angular.toJson(result[0].contents))};
             $scope.models.title = result[0].title;
           }
@@ -74,40 +76,92 @@ angular.module("demo").controller("NestedListsDemoController", function($scope, 
 
   $scope.createSkill = function(item) {
     console.log("adding new skill")
-    var newSkill = {type: "skill", _id: uuid.v1(), title: "Skill Title", columns: [[]]}
-    if ($scope.models.dropzones){
-      var skillList = $scope.models.dropzones.contents
+    if(item != undefined)
+    {
+      var newSkill = {type: "skill", _id: uuid.v1(), title: "Skill Title", logic: "and", columns: [[]]}  //columns: [[[],[],[],[],[]]]
+      var skillList = item.columns[0]
       skillList.push(newSkill)
+
     }
-    else {
-      $scope.models.dropzones = {"contents" : [{type: "skill", _id: uuid.v1(), title: "Skill Title", columns: [[]]}]}
+    else
+    {
+      var newSkill = {type: "skill", _id: uuid.v1(), title: "Skill Title", logic: "and", columns: [[]]}  //columns: [[[],[],[],[],[]]]
+      if ($scope.models.dropzones){
+        var skillList = $scope.models.dropzones.contents
+        skillList.push(newSkill)
+      }
+      else {
+        $scope.models.dropzones = {"contents" : [{type: "skill", _id: uuid.v1(), title: "Skill Title", columns: [[]]}]}
+      }
     }
+
+
   }
 
+
+
+//this and delete to be done recursively  *or not*
   $scope.createTag = function(item) {
-    console.log("adding tag to", item)
+    console.log("creating tag")
     var skillList = $scope.models.dropzones.contents
     var targetSkillIndex = skillList.indexOf(item)
-    var newTag = {"type": "tag", "_id": uuid.v1(), "title": "Title"}
-    // var filepath = ("./public/uploads/img/" + tag._id + "_temp.png")
-    // console.log("new", newTag)
-    newTag.filepath = '/img/' + newTag._id + '.png'
-
-    // var skillContainer = document.getElementById(String(item._id))
-    canScreenshot = true
-    $('#screencapCanvas').css('left', '0')
-    newTagID = newTag._id
-    // containerToAddTo = skillContainer
-
-    // console.log(skillContainer)
-    if(targetSkillIndex >= 0){
-      skillList[targetSkillIndex].columns[0].push(newTag)
-      addTag(newTag)
+    if(targetSkillIndex < 0)
+    {
+      for(i = 0; i < skillList.length; i++) //searching for first one its in
+      {
+        if(skillList[i].type == "skill")
+        {
+          var nextTarget = skillList[i].columns[0].indexOf(item)
+          if(nextTarget != -1)
+          {
+            var newTag = {"type": "tag", "_id": uuid.v1(), "title": "Title"}
+            newTag.filepath = '/img/' + newTag._id + '.png'
+            canScreenshot = true
+            $('#screencapCanvas').css('left', '0')
+            newTagID = newTag._id
+            skillList[i].columns[0][nextTarget].columns[0].push(newTag)
+          }
+        }
+      }
     }
+    else
+    {
+      var newTag = {"type": "tag", "_id": uuid.v1(), "title": "Title"}
+      // var filepath = ("./public/uploads/img/" + tag._id + "_temp.png")
+      newTag.filepath = '/img/' + newTag._id + '.png'
+      // var skillContainer = document.getElementById(String(item._id))
+      canScreenshot = true
+      $('#screencapCanvas').css('left', '0')
+      newTagID = newTag._id
+      // containerToAddTo = skillContainer
+
+      if(targetSkillIndex >= 0){
+        skillList[targetSkillIndex].columns[0].push(newTag) //columns[0].push(newtag)
+        addTag(newTag)
+      }
+    }
+
+
     // $scope.models.dropzones["A"][item - 1].columns[0].push(newTag)
-    // console.log($scope.models.dropzones["A"][item - 1].columns[0])
-    // console.log(canScreenshot)
+
   }
+
+
+  $scope.switchLogic = function(item) {
+    if(item.logic == "and")
+    {
+      item.logic = "or"
+    }
+    else
+    {
+      item.logic = "and"
+    }
+  }
+
+
+  
+
+
 
   $scope.remove = function(item) {
     console.log("REMOVING: " + item.type, "ID: " + item._id)
@@ -125,23 +179,88 @@ angular.module("demo").controller("NestedListsDemoController", function($scope, 
       // temp variable to store the index of said skill (so we can remove stuff from it)
       var targetParentIndex = -1
       for(i = 0; i < allSkills.length; i++){
+
         if($scope.models.dropzones.contents[i]._id == targetParentID){
           targetParentIndex = i
         }
       }
       // if we can find the tag's skill parent...
+
+
       if(targetParentIndex != -1){
-        // get all the tags within the skill
-        var tagsWithinParentSkill = allSkills[targetParentIndex].columns[0]
-        // find our specific tag
-        var targetIndex = tagsWithinParentSkill.indexOf(item)
-        // check if we found it
-        if(targetIndex == -1){
-          console.log("Couldn't find this tag's, so I wasn't able to delete it.")
-        } else{
-          //removes the tag!
-          tagsWithinParentSkill.splice(targetIndex, 1)
-          // deleteTag(item._id)
+
+        for(i = 0; i < allSkills[targetParentIndex].columns.length; i++)
+        {
+          var tagsWithinParentSkill = allSkills[targetParentIndex].columns[i]
+          // find our specific tag
+          var targetIndex = tagsWithinParentSkill.indexOf(item)
+          // check if we found it
+          if(targetIndex == -1){
+            console.log("Couldn't find this tag's, so I wasn't able to delete it first.", i)
+          } else{
+            //removes the tag!
+            tagsWithinParentSkill.splice(targetIndex, 1)
+            // deleteTag(item._id)
+          }
+        }
+      }
+
+
+
+      if(targetParentIndex == -1){
+
+        for(i = 0; i < $scope.models.dropzones.contents.length; i++)
+        {
+
+          if($scope.models.dropzones.contents[i].type == "skill")
+          {
+
+            var skilltarget = $scope.models.dropzones.contents[i]
+            if(skilltarget.columns != undefined)
+            {
+              subtarget = skilltarget.columns[0]
+              for(j = 0; j < skilltarget.columns[0].length; j++)
+              {
+                if(subtarget[j].type == "skill")
+                {
+                  if(subtarget[j].columns != undefined)
+                  {
+                    if(subtarget[j].columns[0].indexOf(item) != -1)
+                    {
+                      var subindex = subtarget[j].columns[0].indexOf(item)
+                      subtarget[j].columns[0].splice(subindex,1)
+
+                    }
+                  }
+
+
+                }
+
+              }
+
+
+
+              // console.log(skilltarget.columns, "this")
+              // var subindex = skilltarget.columns[0].indexOf(item)
+              // console.log(subindex)
+              // if(subindex != -1)
+              // {
+              //   skilltarget.splice(subindex,1)
+              // }
+            }
+          }
+          // var tagsWithinParentSkill = allSkills[targetParentIndex].columns[i]
+          // // find our specific tag
+          // var targetIndex = tagsWithinParentSkill.indexOf(item)
+          // // check if we found it
+          // if(targetIndex == -1){
+          //   console.log("Couldn't find this tag's, so I wasn't able to delete it first.", i)
+          // } else{
+          //   //removes the tag!
+          //   console.log("got it", i)
+          //   tagsWithinParentSkill.splice(targetIndex, 1)
+          //   // deleteTag(item._id)
+          // }
         }
       } else{
         // CASE FOR ORPHAN TAGS
@@ -151,14 +270,29 @@ angular.module("demo").controller("NestedListsDemoController", function($scope, 
           // deleteTag(item._id)
         }
 
-        console.log("Couldn't find this tag's parent container, so I wasn't able to delete it.")
+        console.log("Couldn't find this tag's parent container, so I wasn't able to delete it second.")
       }
     }
     if(item.type == "skill"){
       var targetSkillIndex = allSkills.indexOf(item)
       if(targetSkillIndex >= 0){
+
         allSkills.splice(targetSkillIndex, 1)
         // deleteSkill(item._id)
+      }
+      else
+      {
+        for(i = 0; i < allSkills.length; i++)
+        {
+          var target = allSkills[i].columns[0].indexOf(item)
+          if(target > 0)
+          {
+            allSkills[i].columns[0].splice(target, 1)
+          }
+        }
+
+        // console.log(allSkills.columns[0])
+        // for(i = 0; i < allSkills.length)
       }
     }
 }
@@ -169,6 +303,7 @@ angular.module("demo").controller("NestedListsDemoController", function($scope, 
     $timeout.cancel(timeoutPromise);
     timeoutPromise = $timeout(function(){
       console.log("updating model: ", model.dropzones);
+      console.log("what is this", $scope.modelAsJson)
 
       if(model.dropzones != null){
         console.log(model.title);
@@ -248,6 +383,7 @@ function addTag(tag) {
       data: tag,
       success: function( msg ){console.log( "[tag data saved: " + msg + "]")}
     });
+
 }
 
 function deleteTag(tagID) {

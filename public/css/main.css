@@ -95,6 +95,22 @@ html {
   margin: 0 auto 0 auto;
   padding-bottom: 20px;
   box-sizing: border-box; }
+
+
+  .rubricSkill input[type="button"] {
+    /*position: absolute;
+    bottom: -20px;
+    left: 30px;*/
+    /*float: right;*/
+    float: bottom;
+    /*clear: both;*/
+    /*bottom: 0;*/
+  }
+
+  .rubricSkill.columns {
+    color: #AAAAAA;
+  }
+
   .rubricSkill .actions {
     width: calc(100% - 1em);
     display: inline-block;
@@ -157,6 +173,7 @@ html {
   box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.05);
   transition: all 150ms ease-out;
   z-index: 1;
+  /*float: top; */
   border-radius: 3px;
   overflow: hidden; }
   .rubricTag aside {
